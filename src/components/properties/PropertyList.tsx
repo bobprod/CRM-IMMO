@@ -25,9 +25,11 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import AddPropertyDialog from "./AddPropertyDialog";
 
 interface Property {
   id: string;
+  mandatId: string;
   title: string;
   price: number;
   currency: string;
@@ -39,19 +41,34 @@ interface Property {
   status: string;
   image: string;
   featured: boolean;
+  documents: string[];
+  ownerId: string;
+  ownerName: string;
 }
 
-const PropertyList = () => {
+interface PropertyListProps {
+  language?: string;
+  currency?: string;
+}
+
+const PropertyList = ({
+  language = "fr",
+  currency = "TND",
+}: PropertyListProps = {}) => {
   const [viewMode, setViewMode] = useState<"grid" | "list" | "map">("grid");
   const [priceRange, setPriceRange] = useState<[number]>([500000]);
-  const [currency, setCurrency] = useState<string>("TND");
+  const [selectedCurrency, setCurrency] = useState<string>(currency);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
 
-  // Mock properties data
-  const properties: Property[] = [
+  // Mock properties data with mandat IDs
+  const [properties, setProperties] = useState<Property[]>([
     {
-      id: "1",
-      title: "Modern Villa with Pool",
+      id: "PROP-001",
+      mandatId: "MANDAT-001",
+      title:
+        language === "fr"
+          ? "Villa Moderne avec Piscine"
+          : "Modern Villa with Pool",
       price: 850000,
       currency: "TND",
       location: "La Marsa, Tunis",
@@ -59,29 +76,43 @@ const PropertyList = () => {
       bathrooms: 3,
       area: 320,
       type: "Villa",
-      status: "For Sale",
+      status: language === "fr" ? "À Vendre" : "For Sale",
       image:
         "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",
       featured: true,
+      documents: [],
+      ownerId: "OWNER-001",
+      ownerName: "Mohamed Trabelsi",
     },
     {
-      id: "2",
-      title: "Luxury Apartment with Sea View",
+      id: "PROP-002",
+      mandatId: "MANDAT-002",
+      title:
+        language === "fr"
+          ? "Appartement de Luxe avec Vue Mer"
+          : "Luxury Apartment with Sea View",
       price: 450000,
       currency: "TND",
       location: "Sidi Bou Said, Tunis",
       bedrooms: 3,
       bathrooms: 2,
       area: 180,
-      type: "Apartment",
-      status: "For Sale",
+      type: language === "fr" ? "Appartement" : "Apartment",
+      status: language === "fr" ? "À Vendre" : "For Sale",
       image:
         "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80",
       featured: false,
+      documents: [],
+      ownerId: "OWNER-002",
+      ownerName: "Fatma Ben Salem",
     },
     {
-      id: "3",
-      title: "Commercial Office Space",
+      id: "PROP-003",
+      mandatId: "MANDAT-003",
+      title:
+        language === "fr"
+          ? "Espace Bureau Commercial"
+          : "Commercial Office Space",
       price: 320000,
       currency: "TND",
       location: "Les Berges du Lac, Tunis",
@@ -89,14 +120,18 @@ const PropertyList = () => {
       bathrooms: 2,
       area: 250,
       type: "Commercial",
-      status: "For Sale",
+      status: language === "fr" ? "À Vendre" : "For Sale",
       image:
         "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=800&q=80",
       featured: false,
+      documents: [],
+      ownerId: "OWNER-003",
+      ownerName: "Ahmed Khelifi",
     },
     {
-      id: "4",
-      title: "Beachfront Studio",
+      id: "PROP-004",
+      mandatId: "MANDAT-004",
+      title: language === "fr" ? "Studio en Bord de Mer" : "Beachfront Studio",
       price: 1200,
       currency: "TND",
       location: "Hammamet, Nabeul",
@@ -104,29 +139,43 @@ const PropertyList = () => {
       bathrooms: 1,
       area: 65,
       type: "Studio",
-      status: "For Rent",
+      status: language === "fr" ? "À Louer" : "For Rent",
       image:
         "https://images.unsplash.com/photo-1560185007-c5ca9d2c014d?w=800&q=80",
       featured: true,
+      documents: [],
+      ownerId: "OWNER-004",
+      ownerName: "Leila Mansouri",
     },
     {
-      id: "5",
-      title: "Traditional House with Garden",
+      id: "PROP-005",
+      mandatId: "MANDAT-005",
+      title:
+        language === "fr"
+          ? "Maison Traditionnelle avec Jardin"
+          : "Traditional House with Garden",
       price: 580000,
       currency: "TND",
       location: "Carthage, Tunis",
       bedrooms: 5,
       bathrooms: 3,
       area: 400,
-      type: "House",
-      status: "For Sale",
+      type: language === "fr" ? "Maison" : "House",
+      status: language === "fr" ? "À Vendre" : "For Sale",
       image:
         "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&q=80",
       featured: false,
+      documents: [],
+      ownerId: "OWNER-005",
+      ownerName: "Karim Bouazizi",
     },
     {
-      id: "6",
-      title: "Modern Office Building",
+      id: "PROP-006",
+      mandatId: "MANDAT-006",
+      title:
+        language === "fr"
+          ? "Immeuble de Bureau Moderne"
+          : "Modern Office Building",
       price: 1200000,
       currency: "TND",
       location: "Centre Urbain Nord, Tunis",
@@ -134,32 +183,56 @@ const PropertyList = () => {
       bathrooms: 4,
       area: 800,
       type: "Commercial",
-      status: "For Sale",
+      status: language === "fr" ? "À Vendre" : "For Sale",
       image:
         "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&q=80",
       featured: true,
+      documents: [],
+      ownerId: "OWNER-006",
+      ownerName: "Sonia Gharbi",
     },
-  ];
+  ]);
 
-  const propertyTypes = [
-    "Apartment",
-    "Villa",
-    "House",
-    "Studio",
-    "Commercial",
-    "Land",
-  ];
-  const propertyFeatures = [
-    "Swimming Pool",
-    "Garden",
-    "Garage",
-    "Balcony",
-    "Elevator",
-    "Security",
-    "Air Conditioning",
-    "Heating",
-  ];
-  const propertyStatuses = ["For Sale", "For Rent", "Sold", "Reserved"];
+  const propertyTypes =
+    language === "fr"
+      ? ["Appartement", "Villa", "Maison", "Studio", "Commercial", "Terrain"]
+      : ["Apartment", "Villa", "House", "Studio", "Commercial", "Land"];
+
+  const propertyFeatures =
+    language === "fr"
+      ? [
+          "Piscine",
+          "Jardin",
+          "Garage",
+          "Balcon",
+          "Ascenseur",
+          "Sécurité",
+          "Climatisation",
+          "Chauffage",
+          "Cuisine",
+          "Parking",
+          "Terrasse",
+          "Meublé",
+        ]
+      : [
+          "Swimming Pool",
+          "Garden",
+          "Garage",
+          "Balcony",
+          "Elevator",
+          "Security",
+          "Air Conditioning",
+          "Heating",
+          "Kitchen",
+          "Parking",
+          "Terrace",
+          "Furnished",
+        ];
+
+  const propertyStatuses =
+    language === "fr"
+      ? ["À Vendre", "À Louer", "Vendu", "Réservé"]
+      : ["For Sale", "For Rent", "Sold", "Reserved"];
 
   const toggleFilter = (filter: string) => {
     if (selectedFilters.includes(filter)) {
@@ -181,13 +254,48 @@ const PropertyList = () => {
       <div className="flex flex-col space-y-4">
         {/* Header with search and view toggles */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <h1 className="text-2xl font-bold">Property Management</h1>
+          <div className="flex items-center justify-between w-full">
+            <h1 className="text-2xl font-bold">
+              {language === "fr" ? "Gestion des Biens" : "Property Management"}
+            </h1>
+            <AddPropertyDialog
+              language={language}
+              currency={selectedCurrency}
+              onAddProperty={(property) => {
+                const newProperty: Property = {
+                  id: `PROP-${Date.now()}`,
+                  mandatId: `MANDAT-${Date.now()}`,
+                  title: property.title,
+                  price: property.price,
+                  currency: property.currency,
+                  location: property.location,
+                  bedrooms: property.bedrooms,
+                  bathrooms: property.bathrooms,
+                  area: property.area,
+                  type: property.type,
+                  status: property.status,
+                  image:
+                    property.images[0] ||
+                    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",
+                  featured: false,
+                  documents: property.images,
+                  ownerId: `OWNER-${Date.now()}`,
+                  ownerName: "Nouveau Propriétaire",
+                };
+                setProperties([...properties, newProperty]);
+              }}
+            />
+          </div>
 
           <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
             <div className="relative flex-grow">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search properties..."
+                placeholder={
+                  language === "fr"
+                    ? "Rechercher des biens..."
+                    : "Search properties..."
+                }
                 className="pl-8 w-full"
               />
             </div>
@@ -235,7 +343,9 @@ const PropertyList = () => {
         <div className="bg-card rounded-lg border p-4">
           <div className="flex flex-col md:flex-row justify-between gap-4">
             <div className="flex flex-col gap-2">
-              <h3 className="text-sm font-medium">Property Type</h3>
+              <h3 className="text-sm font-medium">
+                {language === "fr" ? "Type de Bien" : "Property Type"}
+              </h3>
               <div className="flex flex-wrap gap-2">
                 {propertyTypes.map((type) => (
                   <Badge
@@ -253,7 +363,9 @@ const PropertyList = () => {
             </div>
 
             <div className="flex flex-col gap-2">
-              <h3 className="text-sm font-medium">Status</h3>
+              <h3 className="text-sm font-medium">
+                {language === "fr" ? "Statut" : "Status"}
+              </h3>
               <div className="flex flex-wrap gap-2">
                 {propertyStatuses.map((status) => (
                   <Badge
@@ -272,14 +384,18 @@ const PropertyList = () => {
 
             <div className="flex flex-col gap-2 min-w-[200px]">
               <div className="flex justify-between">
-                <h3 className="text-sm font-medium">Price Range</h3>
+                <h3 className="text-sm font-medium">
+                  {language === "fr" ? "Gamme de Prix" : "Price Range"}
+                </h3>
                 <div className="flex items-center gap-2">
                   <span className="text-sm">
-                    {formatPrice(priceRange[0], currency)}
+                    {formatPrice(priceRange[0], selectedCurrency)}
                   </span>
-                  <Select value={currency} onValueChange={setCurrency}>
+                  <Select value={selectedCurrency} onValueChange={setCurrency}>
                     <SelectTrigger className="w-[80px] h-7">
-                      <SelectValue placeholder="Currency" />
+                      <SelectValue
+                        placeholder={language === "fr" ? "Devise" : "Currency"}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="TND">TND</SelectItem>
@@ -304,7 +420,9 @@ const PropertyList = () => {
           <Separator className="my-4" />
 
           <div className="flex flex-col gap-2">
-            <h3 className="text-sm font-medium">Features</h3>
+            <h3 className="text-sm font-medium">
+              {language === "fr" ? "Caractéristiques" : "Features"}
+            </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
               {propertyFeatures.map((feature) => (
                 <div key={feature} className="flex items-center space-x-2">
@@ -319,23 +437,59 @@ const PropertyList = () => {
 
           <div className="flex justify-between mt-4">
             <Button variant="outline" size="sm">
-              <X className="mr-2 h-4 w-4" /> Clear Filters
+              <X className="mr-2 h-4 w-4" />{" "}
+              {language === "fr" ? "Effacer les Filtres" : "Clear Filters"}
             </Button>
             <Button size="sm">
-              <Filter className="mr-2 h-4 w-4" /> Apply Filters
+              <Filter className="mr-2 h-4 w-4" />{" "}
+              {language === "fr" ? "Appliquer les Filtres" : "Apply Filters"}
             </Button>
           </div>
         </div>
 
         {/* WordPress Sync Controls */}
         <div className="flex justify-between items-center bg-card rounded-lg border p-4">
-          <h3 className="text-sm font-medium">WordPress Synchronization</h3>
+          <h3 className="text-sm font-medium">
+            {language === "fr"
+              ? "Synchronisation WordPress"
+              : "WordPress Synchronization"}
+          </h3>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Download className="mr-2 h-4 w-4" /> Import from WordPress
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // Simulate WordPress import
+                alert(
+                  language === "fr"
+                    ? "Import depuis WordPress en cours..."
+                    : "Importing from WordPress...",
+                );
+                // Here you would implement actual WordPress API integration
+              }}
+            >
+              <Download className="mr-2 h-4 w-4" />{" "}
+              {language === "fr"
+                ? "Importer depuis WordPress"
+                : "Import from WordPress"}
             </Button>
-            <Button variant="outline" size="sm">
-              <Upload className="mr-2 h-4 w-4" /> Export to WordPress
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // Simulate WordPress export
+                alert(
+                  language === "fr"
+                    ? "Export vers WordPress en cours..."
+                    : "Exporting to WordPress...",
+                );
+                // Here you would implement actual WordPress API integration
+              }}
+            >
+              <Upload className="mr-2 h-4 w-4" />{" "}
+              {language === "fr"
+                ? "Exporter vers WordPress"
+                : "Export to WordPress"}
             </Button>
           </div>
         </div>
@@ -368,11 +522,14 @@ const PropertyList = () => {
                     />
                     {property.featured && (
                       <Badge className="absolute top-2 right-2 bg-yellow-500">
-                        Featured
+                        {language === "fr" ? "En Vedette" : "Featured"}
                       </Badge>
                     )}
                     <Badge className="absolute bottom-2 left-2">
                       {property.status}
+                    </Badge>
+                    <Badge className="absolute top-2 left-2 bg-blue-500 text-white text-xs">
+                      ID: {property.mandatId}
                     </Badge>
                   </div>
                   <CardContent className="p-4">
@@ -389,18 +546,50 @@ const PropertyList = () => {
                     </p>
                     <div className="flex justify-between mt-4 text-sm">
                       <div className="flex items-center gap-4">
-                        <span>{property.bedrooms} Beds</span>
-                        <span>{property.bathrooms} Baths</span>
+                        <span>
+                          {property.bedrooms}{" "}
+                          {language === "fr" ? "Ch." : "Beds"}
+                        </span>
+                        <span>
+                          {property.bathrooms}{" "}
+                          {language === "fr" ? "SdB" : "Baths"}
+                        </span>
                         <span>{property.area} m²</span>
                       </div>
                       <Badge variant="outline">{property.type}</Badge>
                     </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {language === "fr" ? "Propriétaire:" : "Owner:"}{" "}
+                      {property.ownerName}
+                    </div>
                   </CardContent>
                   <CardFooter className="p-4 pt-0 flex justify-between">
                     <Button variant="outline" size="sm">
-                      View Details
+                      {language === "fr" ? "Voir Détails" : "View Details"}
                     </Button>
-                    <Button size="sm">Edit Property</Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        // Create a proper edit dialog or form
+                        const newTitle = prompt(
+                          `${language === "fr" ? "Nouveau titre pour" : "New title for"} ${property.title}:`,
+                          property.title,
+                        );
+                        if (newTitle && newTitle !== property.title) {
+                          const updatedProperties = properties.map((p) =>
+                            p.id === property.id
+                              ? { ...p, title: newTitle }
+                              : p,
+                          );
+                          setProperties(updatedProperties);
+                          alert(
+                            `${language === "fr" ? "Bien modifié avec succès" : "Property updated successfully"}: ${newTitle}`,
+                          );
+                        }
+                      }}
+                    >
+                      {language === "fr" ? "Modifier Bien" : "Edit Property"}
+                    </Button>
                   </CardFooter>
                 </Card>
               ))}
@@ -420,11 +609,14 @@ const PropertyList = () => {
                       />
                       {property.featured && (
                         <Badge className="absolute top-2 right-2 bg-yellow-500">
-                          Featured
+                          {language === "fr" ? "En Vedette" : "Featured"}
                         </Badge>
                       )}
                       <Badge className="absolute bottom-2 left-2">
                         {property.status}
+                      </Badge>
+                      <Badge className="absolute top-2 left-2 bg-blue-500 text-white text-xs">
+                        ID: {property.mandatId}
                       </Badge>
                     </div>
                     <div className="flex-1 p-4">
@@ -438,16 +630,50 @@ const PropertyList = () => {
                         {property.location}
                       </p>
                       <div className="flex flex-wrap gap-4 mt-4 text-sm">
-                        <span>{property.bedrooms} Beds</span>
-                        <span>{property.bathrooms} Baths</span>
+                        <span>
+                          {property.bedrooms}{" "}
+                          {language === "fr" ? "Ch." : "Beds"}
+                        </span>
+                        <span>
+                          {property.bathrooms}{" "}
+                          {language === "fr" ? "SdB" : "Baths"}
+                        </span>
                         <span>{property.area} m²</span>
                         <Badge variant="outline">{property.type}</Badge>
                       </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {language === "fr" ? "Propriétaire:" : "Owner:"}{" "}
+                        {property.ownerName}
+                      </div>
                       <div className="flex justify-end gap-2 mt-4">
                         <Button variant="outline" size="sm">
-                          View Details
+                          {language === "fr" ? "Voir Détails" : "View Details"}
                         </Button>
-                        <Button size="sm">Edit Property</Button>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            // Create a proper edit dialog or form
+                            const newTitle = prompt(
+                              `${language === "fr" ? "Nouveau titre pour" : "New title for"} ${property.title}:`,
+                              property.title,
+                            );
+                            if (newTitle && newTitle !== property.title) {
+                              const updatedProperties = properties.map((p) =>
+                                p.id === property.id
+                                  ? { ...p, title: newTitle }
+                                  : p,
+                              );
+                              setProperties(updatedProperties);
+                              alert(
+                                `${language === "fr" ? "Bien modifié avec succès" : "Property updated successfully"}: ${newTitle}`,
+                              );
+                            }
+                          }}
+                        >
+                          {language === "fr"
+                            ? "Modifier Bien"
+                            : "Edit Property"}
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -460,13 +686,13 @@ const PropertyList = () => {
             <div className="bg-card rounded-lg border h-[500px] flex items-center justify-center">
               <div className="text-center">
                 <Map className="h-16 w-16 mx-auto text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-medium">Map View</h3>
+                <h3 className="mt-4 text-lg font-medium">
+                  {language === "fr" ? "Vue Carte" : "Map View"}
+                </h3>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Interactive map integration with Google Maps or OpenStreetMap
-                  would be displayed here,
-                  <br />
-                  showing property locations with markers and information
-                  popups.
+                  {language === "fr"
+                    ? "Intégration de carte interactive avec Google Maps ou OpenStreetMap serait affichée ici, montrant les emplacements des propriétés avec des marqueurs et des popups d'information."
+                    : "Interactive map integration with Google Maps or OpenStreetMap would be displayed here, showing property locations with markers and information popups."}
                 </p>
               </div>
             </div>

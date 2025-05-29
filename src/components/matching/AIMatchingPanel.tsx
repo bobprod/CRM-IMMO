@@ -60,7 +60,15 @@ interface Match {
   reasons: string[];
 }
 
-const AIMatchingPanel: React.FC = () => {
+interface AIMatchingPanelProps {
+  language?: string;
+  currency?: string;
+}
+
+const AIMatchingPanel: React.FC<AIMatchingPanelProps> = ({
+  language = "fr",
+  currency = "TND",
+}) => {
   const [relevanceThreshold, setRelevanceThreshold] = useState<number>(70);
   const [activeTab, setActiveTab] = useState<string>("properties");
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);

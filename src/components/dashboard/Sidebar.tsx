@@ -23,11 +23,20 @@ import {
 
 interface SidebarProps {
   className?: string;
+  language?: string;
+  setLanguage?: (lang: string) => void;
+  currency?: string;
+  setCurrency?: (curr: string) => void;
 }
 
-const Sidebar = ({ className }: SidebarProps = {}) => {
+const Sidebar = ({
+  className,
+  language = "fr",
+  setLanguage,
+  currency = "TND",
+  setCurrency,
+}: SidebarProps = {}) => {
   const [activeItem, setActiveItem] = React.useState("dashboard");
-  const [language, setLanguage] = React.useState("fr"); // 'fr' for French, 'en' for English
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({
     marketing: false,
     prospecting: false,
@@ -41,7 +50,9 @@ const Sidebar = ({ className }: SidebarProps = {}) => {
   };
 
   const toggleLanguage = () => {
-    setLanguage((prev) => (prev === "fr" ? "en" : "fr"));
+    if (setLanguage) {
+      setLanguage(language === "fr" ? "en" : "fr");
+    }
   };
 
   const menuItems = [
@@ -49,7 +60,7 @@ const Sidebar = ({ className }: SidebarProps = {}) => {
       id: "dashboard",
       label: language === "fr" ? "Tableau de Bord" : "Dashboard",
       icon: <Home className="h-5 w-5" />,
-      path: "/",
+      path: "/dashboard",
     },
     {
       id: "properties",

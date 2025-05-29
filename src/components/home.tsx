@@ -5,10 +5,23 @@ import Sidebar from "./dashboard/Sidebar";
 import WidgetGrid from "./dashboard/WidgetGrid";
 import PropertyList from "./properties/PropertyList";
 import AIMatchingPanel from "./matching/AIMatchingPanel";
+import ProspectManagement from "./prospects/ProspectManagement";
+import Settings from "./settings/Settings";
+import CalendarModule from "./calendar/CalendarModule";
 import { Button } from "./ui/button";
-import { PlusCircle, Settings, BarChart3, Mail, Calendar } from "lucide-react";
+import {
+  PlusCircle,
+  Settings as SettingsIcon,
+  BarChart3,
+  Mail,
+  Calendar,
+} from "lucide-react";
 
-const Home = () => {
+interface HomeProps {
+  initialTab?: string;
+}
+
+const Home = ({ initialTab = "dashboard" }: HomeProps = {}) => {
   // Default language and currency state
   const [language, setLanguage] = React.useState("fr"); // 'fr' for French, 'en' for English
   const [currency, setCurrency] = React.useState("TND"); // TND, EUR, USD, GBP
@@ -28,6 +41,52 @@ const Home = () => {
       reports: "Rapports",
       emails: "Emails",
       appointments: "Rendez-vous",
+      propertyManagement: "Gestion des Biens",
+      searchProperties: "Rechercher des biens...",
+      propertyType: "Type de Bien",
+      status: "Statut",
+      priceRange: "Gamme de Prix",
+      features: "Caractéristiques",
+      clearFilters: "Effacer les Filtres",
+      applyFilters: "Appliquer les Filtres",
+      wordpressSync: "Synchronisation WordPress",
+      importFromWordpress: "Importer depuis WordPress",
+      exportToWordpress: "Exporter vers WordPress",
+      viewDetails: "Voir Détails",
+      editProperty: "Modifier Bien",
+      forSale: "À Vendre",
+      forRent: "À Louer",
+      sold: "Vendu",
+      reserved: "Réservé",
+      apartment: "Appartement",
+      villa: "Villa",
+      house: "Maison",
+      studio: "Studio",
+      commercial: "Commercial",
+      land: "Terrain",
+      swimmingPool: "Piscine",
+      garden: "Jardin",
+      garage: "Garage",
+      balcony: "Balcon",
+      elevator: "Ascenseur",
+      security: "Sécurité",
+      airConditioning: "Climatisation",
+      heating: "Chauffage",
+      furnished: "Meublé",
+      seaView: "Vue Mer",
+      mountainView: "Vue Montagne",
+      cityView: "Vue Ville",
+      kitchen: "Cuisine",
+      parking: "Parking",
+      terrace: "Terrasse",
+      squareMeters: "Mètres Carrés",
+      beds: "Chambres",
+      baths: "Salles de Bain",
+      documents: "Documents",
+      uploadDocuments: "Télécharger Documents",
+      plans: "Plans",
+      certificates: "Certificats",
+      propertyDocuments: "Documents du Bien",
     },
     en: {
       dashboard: "Dashboard",
@@ -42,6 +101,52 @@ const Home = () => {
       reports: "Reports",
       emails: "Emails",
       appointments: "Appointments",
+      propertyManagement: "Property Management",
+      searchProperties: "Search properties...",
+      propertyType: "Property Type",
+      status: "Status",
+      priceRange: "Price Range",
+      features: "Features",
+      clearFilters: "Clear Filters",
+      applyFilters: "Apply Filters",
+      wordpressSync: "WordPress Synchronization",
+      importFromWordpress: "Import from WordPress",
+      exportToWordpress: "Export to WordPress",
+      viewDetails: "View Details",
+      editProperty: "Edit Property",
+      forSale: "For Sale",
+      forRent: "For Rent",
+      sold: "Sold",
+      reserved: "Reserved",
+      apartment: "Apartment",
+      villa: "Villa",
+      house: "House",
+      studio: "Studio",
+      commercial: "Commercial",
+      land: "Land",
+      swimmingPool: "Swimming Pool",
+      garden: "Garden",
+      garage: "Garage",
+      balcony: "Balcony",
+      elevator: "Elevator",
+      security: "Security",
+      airConditioning: "Air Conditioning",
+      heating: "Heating",
+      furnished: "Furnished",
+      seaView: "Sea View",
+      mountainView: "Mountain View",
+      cityView: "City View",
+      kitchen: "Kitchen",
+      parking: "Parking",
+      terrace: "Terrace",
+      squareMeters: "Square Meters",
+      beds: "Beds",
+      baths: "Baths",
+      documents: "Documents",
+      uploadDocuments: "Upload Documents",
+      plans: "Plans",
+      certificates: "Certificates",
+      propertyDocuments: "Property Documents",
     },
   };
 
@@ -59,7 +164,7 @@ const Home = () => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-6">
-        <Tabs defaultValue="dashboard" className="w-full">
+        <Tabs defaultValue={initialTab} className="w-full">
           <div className="flex items-center justify-between mb-6">
             <TabsList>
               <TabsTrigger value="dashboard">{t.dashboard}</TabsTrigger>
@@ -68,6 +173,8 @@ const Home = () => {
               <TabsTrigger value="matching">{t.matching}</TabsTrigger>
               <TabsTrigger value="marketing">{t.marketing}</TabsTrigger>
               <TabsTrigger value="prospecting">{t.prospecting}</TabsTrigger>
+              <TabsTrigger value="settings">{t.settings}</TabsTrigger>
+              <TabsTrigger value="calendar">{t.appointments}</TabsTrigger>
             </TabsList>
 
             <div className="flex space-x-2">
@@ -76,8 +183,12 @@ const Home = () => {
                 {t.addWidget}
               </Button>
               <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4 mr-2" />
+                <SettingsIcon className="h-4 w-4 mr-2" />
                 {t.customize}
+              </Button>
+              <Button variant="outline" size="sm">
+                <Calendar className="h-4 w-4 mr-2" />
+                {t.appointments}
               </Button>
             </div>
           </div>
@@ -139,22 +250,7 @@ const Home = () => {
 
           {/* Prospects Tab */}
           <TabsContent value="prospects">
-            <Card className="bg-white">
-              <CardHeader>
-                <CardTitle>
-                  {language === "fr"
-                    ? "Gestion des Prospects"
-                    : "Prospect Management"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  {language === "fr"
-                    ? "Module de gestion des prospects avec filtres avancés et historique des interactions."
-                    : "Prospect management module with advanced filters and interaction history."}
-                </p>
-              </CardContent>
-            </Card>
+            <ProspectManagement language={language} currency={currency} />
           </TabsContent>
 
           {/* AI Matching Tab */}
@@ -200,6 +296,21 @@ const Home = () => {
                 </p>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings">
+            <Settings
+              language={language}
+              currency={currency}
+              onLanguageChange={setLanguage}
+              onCurrencyChange={setCurrency}
+            />
+          </TabsContent>
+
+          {/* Calendar Tab */}
+          <TabsContent value="calendar">
+            <CalendarModule language={language} />
           </TabsContent>
         </Tabs>
       </div>
