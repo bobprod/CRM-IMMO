@@ -39,8 +39,8 @@ export default function Login() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const supabase = createClient(
-    import.meta.env.VITE_SUPABASE_URL,
-    import.meta.env.VITE_SUPABASE_ANON_KEY,
+    import.meta.env.VITE_SUPABASE_URL || "https://placeholder.supabase.co",
+    import.meta.env.VITE_SUPABASE_ANON_KEY || "placeholder-key",
   );
 
   const form = useForm<z.infer<typeof formSchema>>({

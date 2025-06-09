@@ -8,6 +8,7 @@ import AIMatchingPanel from "./matching/AIMatchingPanel";
 import ProspectManagement from "./prospects/ProspectManagement";
 import Settings from "./settings/Settings";
 import CalendarModule from "./calendar/CalendarModule";
+import SmartProspecting from "./prospecting/SmartProspecting";
 import { Button } from "./ui/button";
 import {
   PlusCircle,
@@ -280,22 +281,7 @@ const Home = ({ initialTab = "dashboard" }: HomeProps = {}) => {
 
           {/* Smart Prospecting Tab */}
           <TabsContent value="prospecting">
-            <Card className="bg-white">
-              <CardHeader>
-                <CardTitle>
-                  {language === "fr"
-                    ? "Prospection Intelligente"
-                    : "Smart Prospecting"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  {language === "fr"
-                    ? "Module de scraping et d'analyse IA pour identifier de nouvelles opportunités immobilières."
-                    : "Scraping and AI analysis module to identify new real estate opportunities."}
-                </p>
-              </CardContent>
-            </Card>
+            <SmartProspecting language={language} currency={currency} />
           </TabsContent>
 
           {/* Settings Tab */}

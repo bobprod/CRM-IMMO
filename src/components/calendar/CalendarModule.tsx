@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,9 +49,13 @@ interface Appointment {
 
 interface CalendarModuleProps {
   language?: string;
+  externalAppointments?: Appointment[];
 }
 
-const CalendarModule = ({ language = "fr" }: CalendarModuleProps = {}) => {
+const CalendarModule = ({
+  language = "fr",
+  externalAppointments = [],
+}: CalendarModuleProps = {}) => {
   const [appointments, setAppointments] = useState<Appointment[]>([
     {
       id: "1",
@@ -84,6 +88,30 @@ const CalendarModule = ({ language = "fr" }: CalendarModuleProps = {}) => {
       status: "scheduled",
     },
   ]);
+
+  // Load appointments from localStorage and external sources
+  useEffect(() => {
+    const loadAppointments = () => {
+      const storedAppointments = JSON.parse(
+        localStorage.getItem("crm-appointments") || "[]",
+      );
+      const allAppointments = [
+        ...appointments,
+        ...storedAppointments,
+        ...externalAppointments,
+      ];
+
+      // Remove duplicates based on id
+      const uniqueAppointments = allAppointments.filter(
+        (appointment, index, self) =>
+          index === self.findIndex((a) => a.id === appointment.id),
+      );
+
+      setAppointments(uniqueAppointments);
+    };
+
+    loadAppointments();
+  }, [externalAppointments]);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newAppointment, setNewAppointment] = useState<Partial<Appointment>>({
@@ -157,7 +185,19 @@ const CalendarModule = ({ language = "fr" }: CalendarModuleProps = {}) => {
       id: Date.now().toString(),
     } as Appointment;
 
-    setAppointments([...appointments, appointment]);
+    const updatedAppointments = [...appointments, appointment];
+    setAppointments(updatedAppointments);
+
+    // Store in localStorage
+    const storedAppointments = JSON.parse(
+      localStorage.getItem("crm-appointments") || "[]",
+    );
+    storedAppointments.push(appointment);
+    localStorage.setItem(
+      "crm-appointments",
+      JSON.stringify(storedAppointments),
+    );
+
     setNewAppointment({
       title: "",
       type: "viewing",
@@ -175,13 +215,16 @@ const CalendarModule = ({ language = "fr" }: CalendarModuleProps = {}) => {
     setIsAddDialogOpen(false);
   };
 
-  const todayAppointments = appointments.filter(
-    (apt) => apt.date === new Date().toISOString().split("T")[0],
-  );
+  const today = new Date().toISOString().split("T")[0];
+  const todayAppointments = appointments.filter((apt) => apt.date === today);
 
-  const upcomingAppointments = appointments.filter(
-    (apt) => new Date(apt.date) > new Date(),
-  );
+  const upcomingAppointments = appointments
+    .filter((apt) => new Date(apt.date) >= new Date() && apt.date !== today)
+    .sort(
+      (a, b) =>
+        new Date(a.date + " " + a.time).getTime() -
+        new Date(b.date + " " + b.time).getTime(),
+    );
 
   return (
     <div className="w-full bg-background p-6">
@@ -280,17 +323,27 @@ const CalendarModule = ({ language = "fr" }: CalendarModuleProps = {}) => {
                   <Label htmlFor="time">
                     {language === "fr" ? "Heure" : "Time"}
                   </Label>
-                  <Input
-                    id="time"
-                    type="time"
-                    value={newAppointment.time}
-                    onChange={(e) =>
-                      setNewAppointment({
-                        ...newAppointment,
-                        time: e.target.value,
-                      })
-                    }
-                  />
+                  <div className="relative">
+                    <Input
+                      id="time"
+                      type="time"
+                      value={newAppointment.time}
+                      onChange={(e) =>
+                        setNewAppointment({
+                          ...newAppointment,
+                          time: e.target.value,
+                        })
+                      }
+                      step="900"
+                      min="06:00"
+                      max="22:00"
+                    />
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {language === "fr"
+                        ? "Disponible de 06:00 à 22:00 (par tranches de 15min)"
+                        : "Available from 06:00 to 22:00 (15min intervals)"}
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="duration">

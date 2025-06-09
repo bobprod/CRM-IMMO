@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,17 @@ import {
   Save,
   Plus,
   Trash2,
+  Phone,
+  Mail,
+  MessageSquare,
+  Search,
+  Zap,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Send,
+  Facebook,
+  Instagram,
 } from "lucide-react";
 
 interface Zone {
@@ -36,6 +47,22 @@ interface AIProvider {
   name: string;
   apiKey: string;
   enabled: boolean;
+}
+
+interface Integration {
+  id: string;
+  name: string;
+  type: "sms" | "email" | "meta" | "scraping" | "automation";
+  enabled: boolean;
+  status: "connected" | "disconnected" | "testing";
+  config: Record<string, any>;
+  lastTest?: Date;
+  logs: Array<{
+    id: string;
+    timestamp: Date;
+    type: "success" | "error" | "info";
+    message: string;
+  }>;
 }
 
 interface SettingsProps {
@@ -97,8 +124,130 @@ const Settings = ({
     },
   ]);
 
+  const [integrations, setIntegrations] = useState<Integration[]>([
+    {
+      id: "twilio",
+      name: "Twilio SMS",
+      type: "sms",
+      enabled: false,
+      status: "disconnected",
+      config: {
+        accountSid: "",
+        authToken: "",
+        phoneNumber: "",
+        serviceSid: "",
+        webhookSid: "",
+      },
+      logs: [],
+    },
+    {
+      id: "mailgun",
+      name: "Mailgun",
+      type: "email",
+      enabled: false,
+      status: "disconnected",
+      config: {
+        apiKey: "",
+        domain: "",
+        fromEmail: "",
+      },
+      logs: [],
+    },
+    {
+      id: "meta",
+      name: "Meta Business",
+      type: "meta",
+      enabled: false,
+      status: "disconnected",
+      config: {
+        accessToken: "",
+        appId: "",
+        appSecret: "",
+        pageId: "",
+      },
+      logs: [],
+    },
+    {
+      id: "serpapi",
+      name: "SerpApi",
+      type: "scraping",
+      enabled: false,
+      status: "disconnected",
+      config: {
+        apiKey: "",
+      },
+      logs: [],
+    },
+    {
+      id: "firecrawl",
+      name: "Firecrawl",
+      type: "scraping",
+      enabled: false,
+      status: "disconnected",
+      config: {
+        apiKey: "",
+      },
+      logs: [],
+    },
+    {
+      id: "n8n",
+      name: "n8n Automation",
+      type: "automation",
+      enabled: false,
+      status: "disconnected",
+      config: {
+        webhookUrl: "",
+        apiKey: "",
+      },
+      logs: [],
+    },
+  ]);
+
   const [newZone, setNewZone] = useState({ name: "", cities: "" });
   const [mapProvider, setMapProvider] = useState("google");
+  const [googleApiKey, setGoogleApiKey] = useState("");
+
+  // Load settings from localStorage on component mount
+  useEffect(() => {
+    const loadSettings = () => {
+      try {
+        // Load map provider
+        const savedMapProvider = localStorage.getItem("crm-map-provider");
+        if (savedMapProvider) {
+          setMapProvider(savedMapProvider);
+        }
+
+        // Load Google API key
+        const savedGoogleApiKey = localStorage.getItem("crm-google-api-key");
+        if (savedGoogleApiKey) {
+          setGoogleApiKey(savedGoogleApiKey);
+        }
+
+        // Load AI providers
+        const savedAIProviders = localStorage.getItem("crm-ai-providers");
+        if (savedAIProviders) {
+          setAIProviders(JSON.parse(savedAIProviders));
+        }
+
+        // Load integrations
+        const savedIntegrations = localStorage.getItem("crm-integrations");
+        if (savedIntegrations) {
+          setIntegrations(JSON.parse(savedIntegrations));
+        }
+
+        // Load zones
+        const savedZones = localStorage.getItem("crm-zones");
+        if (savedZones) {
+          setZones(JSON.parse(savedZones));
+        }
+      } catch (error) {
+        console.error("Error loading settings:", error);
+        // Don't break the component if localStorage fails
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   const handleAddZone = () => {
     if (newZone.name && newZone.cities) {
@@ -107,21 +256,247 @@ const Settings = ({
         name: newZone.name,
         cities: newZone.cities.split(",").map((city) => city.trim()),
       };
-      setZones([...zones, zone]);
+      const updatedZones = [...zones, zone];
+      setZones(updatedZones);
+      localStorage.setItem("crm-zones", JSON.stringify(updatedZones));
       setNewZone({ name: "", cities: "" });
     }
   };
 
   const handleRemoveZone = (id: string) => {
-    setZones(zones.filter((zone) => zone.id !== id));
+    const updatedZones = zones.filter((zone) => zone.id !== id);
+    setZones(updatedZones);
+    localStorage.setItem("crm-zones", JSON.stringify(updatedZones));
   };
 
   const handleUpdateAIProvider = (id: string, updates: Partial<AIProvider>) => {
-    setAIProviders(
-      aiProviders.map((provider) =>
-        provider.id === id ? { ...provider, ...updates } : provider,
-      ),
+    const updatedProviders = aiProviders.map((provider) =>
+      provider.id === id ? { ...provider, ...updates } : provider,
     );
+    setAIProviders(updatedProviders);
+    // Save to localStorage immediately when changed
+    localStorage.setItem("crm-ai-providers", JSON.stringify(updatedProviders));
+  };
+
+  const handleMapProviderChange = (newProvider: string) => {
+    setMapProvider(newProvider);
+    localStorage.setItem("crm-map-provider", newProvider);
+  };
+
+  const handleGoogleApiKeyChange = (newKey: string) => {
+    setGoogleApiKey(newKey);
+    localStorage.setItem("crm-google-api-key", newKey);
+  };
+
+  const handleUpdateIntegration = (
+    id: string,
+    updates: Partial<Integration>,
+  ) => {
+    const updatedIntegrations = integrations.map((integration) =>
+      integration.id === id ? { ...integration, ...updates } : integration,
+    );
+    setIntegrations(updatedIntegrations);
+    localStorage.setItem(
+      "crm-integrations",
+      JSON.stringify(updatedIntegrations),
+    );
+  };
+
+  const testIntegrationConnection = async (integration: Integration) => {
+    handleUpdateIntegration(integration.id, { status: "testing" });
+
+    try {
+      let result;
+
+      switch (integration.id) {
+        case "twilio":
+          // Test Twilio connection by updating webhook
+          result = await fetch(
+            "https://elegant-kapitsa6-bqb8c.supabase.co/functions/v1/supabase-functions-twilio-webhook",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              },
+              body: JSON.stringify({
+                serviceSid: integration.config.serviceSid,
+                sid: integration.config.webhookSid,
+                data: { Status: "enabled" },
+              }),
+            },
+          );
+          break;
+
+        case "mailgun":
+          // Test Mailgun by sending a test email
+          result = await fetch(
+            "https://elegant-kapitsa6-bqb8c.supabase.co/functions/v1/supabase-functions-mailgun-send",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              },
+              body: JSON.stringify({
+                domain: integration.config.domain,
+                emailData: {
+                  from: integration.config.fromEmail,
+                  to: [integration.config.fromEmail],
+                  subject: "Test de connexion Mailgun",
+                  text: "Ceci est un test de connexion depuis votre CRM.",
+                },
+              }),
+            },
+          );
+          break;
+
+        case "meta":
+          // Test Meta connection
+          result = await fetch(
+            "https://elegant-kapitsa6-bqb8c.supabase.co/functions/v1/supabase-functions-meta-test",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              },
+              body: JSON.stringify({
+                accessToken: integration.config.accessToken,
+              }),
+            },
+          );
+          break;
+
+        case "serpapi":
+          // Test SerpApi
+          result = await fetch(
+            "https://elegant-kapitsa6-bqb8c.supabase.co/functions/v1/supabase-functions-serp-search",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              },
+              body: JSON.stringify({
+                query: "test",
+                options: { location: "Tunisia" },
+                apiKey: integration.config.apiKey,
+              }),
+            },
+          );
+          break;
+
+        case "firecrawl":
+          // Test Firecrawl
+          result = await fetch(
+            "https://elegant-kapitsa6-bqb8c.supabase.co/functions/v1/supabase-functions-firecrawl-extract",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              },
+              body: JSON.stringify({
+                query: "test search",
+                limit: 5,
+                apiKey: integration.config.apiKey,
+              }),
+            },
+          );
+          break;
+
+        default:
+          throw new Error("Integration non supportée");
+      }
+
+      const data = await result.json();
+
+      if (result.ok && !data.error) {
+        handleUpdateIntegration(integration.id, {
+          status: "connected",
+          lastTest: new Date(),
+          logs: [
+            ...integration.logs,
+            {
+              id: Date.now().toString(),
+              timestamp: new Date(),
+              type: "success",
+              message: "Test de connexion réussi",
+            },
+          ],
+        });
+      } else {
+        throw new Error(data.error || data.message || "Erreur de connexion");
+      }
+    } catch (error) {
+      handleUpdateIntegration(integration.id, {
+        status: "disconnected",
+        logs: [
+          ...integration.logs,
+          {
+            id: Date.now().toString(),
+            timestamp: new Date(),
+            type: "error",
+            message: error.message || "Erreur de test de connexion",
+          },
+        ],
+      });
+    }
+  };
+
+  const getIntegrationIcon = (type: string) => {
+    switch (type) {
+      case "sms":
+        return <MessageSquare className="h-5 w-5" />;
+      case "email":
+        return <Mail className="h-5 w-5" />;
+      case "meta":
+        return <Facebook className="h-5 w-5" />;
+      case "scraping":
+        return <Search className="h-5 w-5" />;
+      case "automation":
+        return <Zap className="h-5 w-5" />;
+      default:
+        return <Key className="h-5 w-5" />;
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "connected":
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case "disconnected":
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      case "testing":
+        return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
+      default:
+        return <XCircle className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const saveAllSettings = () => {
+    try {
+      // Save all settings to localStorage
+      localStorage.setItem("crm-map-provider", mapProvider);
+      localStorage.setItem("crm-google-api-key", googleApiKey);
+      localStorage.setItem("crm-ai-providers", JSON.stringify(aiProviders));
+      localStorage.setItem("crm-integrations", JSON.stringify(integrations));
+      localStorage.setItem("crm-zones", JSON.stringify(zones));
+
+      alert(
+        language === "fr"
+          ? "Tous les paramètres ont été sauvegardés avec succès!"
+          : "All settings have been saved successfully!",
+      );
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      alert(
+        language === "fr"
+          ? "Erreur lors de la sauvegarde des paramètres"
+          : "Error saving settings",
+      );
+    }
   };
 
   const handleLanguageChange = (newLanguage: string) => {
@@ -147,9 +522,12 @@ const Settings = ({
         </div>
 
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="general">
               {language === "fr" ? "Général" : "General"}
+            </TabsTrigger>
+            <TabsTrigger value="integrations">
+              {language === "fr" ? "Intégrations API" : "API Integrations"}
             </TabsTrigger>
             <TabsTrigger value="locations">
               {language === "fr" ? "Zones & Villes" : "Zones & Cities"}
@@ -164,6 +542,323 @@ const Settings = ({
               {language === "fr" ? "WhatsApp Business" : "WhatsApp Business"}
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="integrations" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Zap className="h-5 w-5" />
+                  <span>
+                    {language === "fr"
+                      ? "Connexions API et Webhooks"
+                      : "API & Webhook Connections"}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {integrations.map((integration) => (
+                  <Card key={integration.id} className="p-4">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          {getIntegrationIcon(integration.type)}
+                          <div>
+                            <h4 className="font-medium">{integration.name}</h4>
+                            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                              {getStatusIcon(integration.status)}
+                              <span className="capitalize">
+                                {integration.status}
+                              </span>
+                              {integration.lastTest && (
+                                <span>
+                                  • Testé le{" "}
+                                  {integration.lastTest.toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              testIntegrationConnection(integration)
+                            }
+                            disabled={integration.status === "testing"}
+                          >
+                            {integration.status === "testing" ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Send className="h-4 w-4 mr-2" />
+                            )}
+                            {language === "fr" ? "Tester" : "Test"}
+                          </Button>
+                          <Switch
+                            checked={integration.enabled}
+                            onCheckedChange={(checked) =>
+                              handleUpdateIntegration(integration.id, {
+                                enabled: checked,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      {/* Configuration fields based on integration type */}
+                      <div className="grid grid-cols-2 gap-4">
+                        {integration.id === "twilio" && (
+                          <>
+                            <div className="space-y-2">
+                              <Label>Account SID</Label>
+                              <Input
+                                type="password"
+                                value={integration.config.accountSid}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      accountSid: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Auth Token</Label>
+                              <Input
+                                type="password"
+                                value={integration.config.authToken}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      authToken: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Phone Number</Label>
+                              <Input
+                                value={integration.config.phoneNumber}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      phoneNumber: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="+1234567890"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {integration.id === "mailgun" && (
+                          <>
+                            <div className="space-y-2">
+                              <Label>API Key</Label>
+                              <Input
+                                type="password"
+                                value={integration.config.apiKey}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      apiKey: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Domain</Label>
+                              <Input
+                                value={integration.config.domain}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      domain: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="mg.yourdomain.com"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>From Email</Label>
+                              <Input
+                                type="email"
+                                value={integration.config.fromEmail}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      fromEmail: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="noreply@yourdomain.com"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {integration.id === "meta" && (
+                          <>
+                            <div className="space-y-2">
+                              <Label>Access Token</Label>
+                              <Input
+                                type="password"
+                                value={integration.config.accessToken}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      accessToken: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="EAAx..."
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>App ID</Label>
+                              <Input
+                                value={integration.config.appId}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      appId: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="123456789..."
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Page ID</Label>
+                              <Input
+                                value={integration.config.pageId}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      pageId: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="987654321..."
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {(integration.id === "serpapi" ||
+                          integration.id === "firecrawl") && (
+                          <div className="space-y-2">
+                            <Label>API Key</Label>
+                            <Input
+                              type="password"
+                              value={integration.config.apiKey}
+                              onChange={(e) =>
+                                handleUpdateIntegration(integration.id, {
+                                  config: {
+                                    ...integration.config,
+                                    apiKey: e.target.value,
+                                  },
+                                })
+                              }
+                              placeholder="fc-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                            />
+                          </div>
+                        )}
+
+                        {integration.id === "n8n" && (
+                          <>
+                            <div className="space-y-2">
+                              <Label>Webhook URL</Label>
+                              <Input
+                                value={integration.config.webhookUrl}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      webhookUrl: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="https://your-n8n.com/webhook/..."
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>API Key (optionnel)</Label>
+                              <Input
+                                type="password"
+                                value={integration.config.apiKey}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      apiKey: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="n8n_api_key..."
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Logs section */}
+                      {integration.logs.length > 0 && (
+                        <div className="space-y-2">
+                          <Label>Logs récents</Label>
+                          <div className="max-h-32 overflow-y-auto space-y-1 p-2 bg-muted rounded">
+                            {integration.logs.slice(-5).map((log) => (
+                              <div
+                                key={log.id}
+                                className="flex items-center space-x-2 text-xs"
+                              >
+                                <span className="text-muted-foreground">
+                                  {log.timestamp.toLocaleTimeString()}
+                                </span>
+                                <span
+                                  className={`px-1 rounded ${
+                                    log.type === "success"
+                                      ? "bg-green-100 text-green-800"
+                                      : log.type === "error"
+                                        ? "bg-red-100 text-red-800"
+                                        : "bg-blue-100 text-blue-800"
+                                  }`}
+                                >
+                                  {log.type}
+                                </span>
+                                <span>{log.message}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+                <Button onClick={saveAllSettings}>
+                  <Save className="h-4 w-4 mr-2" />
+                  {language === "fr" ? "Sauvegarder" : "Save"}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="general" className="space-y-6">
             <Card>
@@ -323,7 +1018,10 @@ const Settings = ({
                       ? "Choisir le fournisseur de cartes"
                       : "Choose map provider"}
                   </Label>
-                  <Select value={mapProvider} onValueChange={setMapProvider}>
+                  <Select
+                    value={mapProvider}
+                    onValueChange={handleMapProviderChange}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select map provider" />
                     </SelectTrigger>
@@ -343,11 +1041,13 @@ const Settings = ({
                     <Input
                       id="googleApiKey"
                       type="password"
+                      value={googleApiKey}
+                      onChange={(e) => handleGoogleApiKeyChange(e.target.value)}
                       placeholder="AIzaSy..."
                     />
                   </div>
                 )}
-                <Button>
+                <Button onClick={saveAllSettings}>
                   <Save className="h-4 w-4 mr-2" />
                   {language === "fr" ? "Sauvegarder" : "Save"}
                 </Button>
@@ -406,7 +1106,7 @@ const Settings = ({
                     </div>
                   </div>
                 ))}
-                <Button>
+                <Button onClick={saveAllSettings}>
                   <Save className="h-4 w-4 mr-2" />
                   {language === "fr" ? "Sauvegarder" : "Save"}
                 </Button>
@@ -491,7 +1191,7 @@ const Settings = ({
                   </div>
                 </div>
 
-                <Button>
+                <Button onClick={saveAllSettings}>
                   <Save className="h-4 w-4 mr-2" />
                   {language === "fr" ? "Sauvegarder" : "Save"}
                 </Button>

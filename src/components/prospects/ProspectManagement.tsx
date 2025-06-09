@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,14 +87,32 @@ interface Mandat {
   propertyTitle?: string;
 }
 
+interface Appointment {
+  id: string;
+  title: string;
+  type: "viewing" | "signing" | "meeting" | "call";
+  date: string;
+  time: string;
+  duration: number;
+  location: string;
+  clientName: string;
+  clientEmail: string;
+  clientPhone: string;
+  propertyTitle?: string;
+  notes: string;
+  status: "scheduled" | "confirmed" | "completed" | "cancelled";
+}
+
 interface ProspectManagementProps {
   language?: string;
   currency?: string;
+  onAppointmentCreated?: (appointment: Appointment) => void;
 }
 
 const ProspectManagement = ({
   language = "fr",
   currency = "TND",
+  onAppointmentCreated,
 }: ProspectManagementProps = {}) => {
   const [requetes, setRequetes] = useState<Requete[]>([
     {
@@ -152,6 +170,40 @@ const ProspectManagement = ({
       responsable: "Agent Commercial",
     },
   ]);
+
+  // Load prospects from localStorage on component mount
+  useEffect(() => {
+    const loadProspects = () => {
+      try {
+        const savedProspects = localStorage.getItem("crm-prospects");
+        if (savedProspects) {
+          const prospects = JSON.parse(savedProspects);
+          // Merge with existing default prospects, avoiding duplicates
+          const existingIds = requetes.map((r) => r.id);
+          const newProspects = prospects.filter(
+            (p: Requete) => !existingIds.includes(p.id),
+          );
+          if (newProspects.length > 0) {
+            setRequetes((prev) => [...prev, ...newProspects]);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading prospects:", error);
+      }
+    };
+
+    loadProspects();
+
+    // Listen for storage changes to update prospects in real-time
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "crm-prospects") {
+        loadProspects();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   const [mandats, setMandats] = useState<Mandat[]>([
     {
@@ -1453,8 +1505,63 @@ const ProspectManagement = ({
               </Button>
               <Button
                 onClick={() => {
-                  // Here we would normally save to calendar module
-                  // For now, we'll show a success message
+                  // Create appointment object
+                  const newAppointment: Appointment = {
+                    id: Date.now().toString(),
+                    title: `${appointmentData.type === "viewing" ? "Visite" : appointmentData.type === "meeting" ? "Réunion" : appointmentData.type === "call" ? "Appel" : "Signature"} - ${selectedContact?.name}`,
+                    type: appointmentData.type,
+                    date: appointmentData.date,
+                    time: appointmentData.time,
+                    duration:
+                      appointmentData.type === "viewing"
+                        ? 60
+                        : appointmentData.type === "signing"
+                          ? 90
+                          : 30,
+                    location:
+                      appointmentData.type === "call"
+                        ? "Appel téléphonique"
+                        : "À définir",
+                    clientName: selectedContact?.name || "",
+                    clientEmail:
+                      selectedContact?.type === "requete"
+                        ? requetes.find(
+                            (r) => r.client === selectedContact?.name,
+                          )?.email || ""
+                        : mandats.find(
+                            (m) => m.proprietaire === selectedContact?.name,
+                          )?.email || "",
+                    clientPhone:
+                      selectedContact?.type === "requete"
+                        ? requetes.find(
+                            (r) => r.client === selectedContact?.name,
+                          )?.phone || ""
+                        : mandats.find(
+                            (m) => m.proprietaire === selectedContact?.name,
+                          )?.phone || "",
+                    propertyTitle:
+                      selectedContact?.type === "requete"
+                        ? `${requetes.find((r) => r.client === selectedContact?.name)?.typePropriete} ${requetes.find((r) => r.client === selectedContact?.name)?.sousType}`
+                        : `${mandats.find((m) => m.proprietaire === selectedContact?.name)?.typePropriete} ${mandats.find((m) => m.proprietaire === selectedContact?.name)?.sousType}`,
+                    notes: appointmentData.motif,
+                    status: "scheduled",
+                  };
+
+                  // Call the callback to add appointment to calendar
+                  if (onAppointmentCreated) {
+                    onAppointmentCreated(newAppointment);
+                  }
+
+                  // Store in localStorage as backup
+                  const existingAppointments = JSON.parse(
+                    localStorage.getItem("crm-appointments") || "[]",
+                  );
+                  existingAppointments.push(newAppointment);
+                  localStorage.setItem(
+                    "crm-appointments",
+                    JSON.stringify(existingAppointments),
+                  );
+
                   alert(
                     `${language === "fr" ? "Rendez-vous planifié avec" : "Appointment scheduled with"} ${selectedContact?.name}\n` +
                       `${language === "fr" ? "Date:" : "Date:"} ${appointmentData.date}\n` +
