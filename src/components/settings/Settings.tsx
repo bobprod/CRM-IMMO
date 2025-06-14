@@ -232,7 +232,21 @@ const Settings = ({
         // Load integrations
         const savedIntegrations = localStorage.getItem("crm-integrations");
         if (savedIntegrations) {
-          setIntegrations(JSON.parse(savedIntegrations));
+          const parsedIntegrations = JSON.parse(savedIntegrations);
+          // Ensure timestamps are Date objects
+          const fixedIntegrations = parsedIntegrations.map(
+            (integration: Integration) => ({
+              ...integration,
+              lastTest: integration.lastTest
+                ? new Date(integration.lastTest)
+                : undefined,
+              logs: integration.logs.map((log: any) => ({
+                ...log,
+                timestamp: new Date(log.timestamp),
+              })),
+            }),
+          );
+          setIntegrations(fixedIntegrations);
         }
 
         // Load zones
@@ -310,9 +324,9 @@ const Settings = ({
 
       switch (integration.id) {
         case "twilio":
-          // Test Twilio connection by updating webhook
+          // Test Twilio connection
           result = await fetch(
-            "https://elegant-kapitsa6-bqb8c.supabase.co/functions/v1/supabase-functions-twilio-webhook",
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/supabase-functions-twilio-webhook`,
             {
               method: "POST",
               headers: {
@@ -320,18 +334,18 @@ const Settings = ({
                 Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
               },
               body: JSON.stringify({
-                serviceSid: integration.config.serviceSid,
-                sid: integration.config.webhookSid,
-                data: { Status: "enabled" },
+                serviceSid: "test",
+                sid: "test",
+                data: { test: "connection" },
               }),
             },
           );
           break;
 
         case "mailgun":
-          // Test Mailgun by sending a test email
+          // Test Mailgun connection
           result = await fetch(
-            "https://elegant-kapitsa6-bqb8c.supabase.co/functions/v1/supabase-functions-mailgun-send",
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/supabase-functions-mailgun-send`,
             {
               method: "POST",
               headers: {
@@ -339,12 +353,12 @@ const Settings = ({
                 Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
               },
               body: JSON.stringify({
-                domain: integration.config.domain,
+                domain: "test.com",
                 emailData: {
-                  from: integration.config.fromEmail,
-                  to: [integration.config.fromEmail],
-                  subject: "Test de connexion Mailgun",
-                  text: "Ceci est un test de connexion depuis votre CRM.",
+                  from: "test@test.com",
+                  to: "test@test.com",
+                  subject: "Test",
+                  text: "Test connection",
                 },
               }),
             },
@@ -353,25 +367,25 @@ const Settings = ({
 
         case "meta":
           // Test Meta connection
+          if (!integration.config.accessToken) {
+            throw new Error("Token d'accès Meta manquant");
+          }
           result = await fetch(
-            "https://elegant-kapitsa6-bqb8c.supabase.co/functions/v1/supabase-functions-meta-test",
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/supabase-functions-meta-test`,
             {
-              method: "POST",
+              method: "GET",
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
               },
-              body: JSON.stringify({
-                accessToken: integration.config.accessToken,
-              }),
             },
           );
           break;
 
         case "serpapi":
-          // Test SerpApi
+          // Test SerpApi with better error handling
           result = await fetch(
-            "https://elegant-kapitsa6-bqb8c.supabase.co/functions/v1/supabase-functions-serp-search",
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/supabase-functions-serp-search`,
             {
               method: "POST",
               headers: {
@@ -379,18 +393,22 @@ const Settings = ({
                 Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
               },
               body: JSON.stringify({
-                query: "test",
-                options: { location: "Tunisia" },
-                apiKey: integration.config.apiKey,
+                query: "test search tunisia real estate",
+                options: {
+                  location: "Tunisia",
+                  hl: "fr",
+                  gl: "tn",
+                  num: 5,
+                },
               }),
             },
           );
           break;
 
         case "firecrawl":
-          // Test Firecrawl
+          // Test Firecrawl with save mode
           result = await fetch(
-            "https://elegant-kapitsa6-bqb8c.supabase.co/functions/v1/supabase-functions-firecrawl-extract",
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/supabase-functions-firecrawl-extract`,
             {
               method: "POST",
               headers: {
@@ -398,9 +416,19 @@ const Settings = ({
                 Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
               },
               body: JSON.stringify({
-                query: "test search",
-                limit: 5,
-                apiKey: integration.config.apiKey,
+                query:
+                  integration.config.testQuery ||
+                  "test query tunisia real estate",
+                limit: integration.config.limit || 1,
+                options: {
+                  formats: integration.config.formats || ["markdown"],
+                  includeTags: integration.config.includeTags || [],
+                  excludeTags: integration.config.excludeTags || [],
+                  onlyMainContent: integration.config.onlyMainContent || true,
+                  timeout: integration.config.timeout || 30000,
+                },
+                saveParams: integration.config.saveParams || false,
+                loadSavedParams: false,
               }),
             },
           );
@@ -410,7 +438,18 @@ const Settings = ({
           throw new Error("Integration non supportée");
       }
 
-      const data = await result.json();
+      let data;
+      try {
+        const responseText = await result.text();
+        if (responseText) {
+          data = JSON.parse(responseText);
+        } else {
+          data = {};
+        }
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError);
+        throw new Error("Réponse invalide du serveur");
+      }
 
       if (result.ok && !data.error) {
         handleUpdateIntegration(integration.id, {
@@ -427,9 +466,15 @@ const Settings = ({
           ],
         });
       } else {
-        throw new Error(data.error || data.message || "Erreur de connexion");
+        throw new Error(
+          data.error?.message ||
+            data.error ||
+            data.message ||
+            `Erreur HTTP ${result.status}`,
+        );
       }
     } catch (error) {
+      console.error("Integration test error:", error);
       handleUpdateIntegration(integration.id, {
         status: "disconnected",
         logs: [
@@ -438,7 +483,7 @@ const Settings = ({
             id: Date.now().toString(),
             timestamp: new Date(),
             type: "error",
-            message: error.message || "Erreur de test de connexion",
+            message: error?.message || "Erreur de test de connexion",
           },
         ],
       });
@@ -762,8 +807,7 @@ const Settings = ({
                           </>
                         )}
 
-                        {(integration.id === "serpapi" ||
-                          integration.id === "firecrawl") && (
+                        {integration.id === "serpapi" && (
                           <div className="space-y-2">
                             <Label>API Key</Label>
                             <Input
@@ -777,9 +821,168 @@ const Settings = ({
                                   },
                                 })
                               }
-                              placeholder="fc-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                              placeholder="Votre clé API SerpApi"
                             />
                           </div>
+                        )}
+
+                        {integration.id === "firecrawl" && (
+                          <>
+                            <div className="space-y-2">
+                              <Label>API Key</Label>
+                              <Input
+                                type="password"
+                                value={integration.config.apiKey}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      apiKey: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="fc-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Test Query</Label>
+                              <Input
+                                value={integration.config.testQuery || ""}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      testQuery: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="tunisia real estate properties"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Limit</Label>
+                              <Input
+                                type="number"
+                                value={integration.config.limit || 5}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      limit: parseInt(e.target.value) || 5,
+                                    },
+                                  })
+                                }
+                                placeholder="5"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Formats (comma separated)</Label>
+                              <Input
+                                value={(integration.config.formats || []).join(
+                                  ", ",
+                                )}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      formats: e.target.value
+                                        .split(",")
+                                        .map((f) => f.trim())
+                                        .filter((f) => f),
+                                    },
+                                  })
+                                }
+                                placeholder="markdown, html, text"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Include Tags (comma separated)</Label>
+                              <Input
+                                value={(
+                                  integration.config.includeTags || []
+                                ).join(", ")}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      includeTags: e.target.value
+                                        .split(",")
+                                        .map((t) => t.trim())
+                                        .filter((t) => t),
+                                    },
+                                  })
+                                }
+                                placeholder="article, main, content"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Exclude Tags (comma separated)</Label>
+                              <Input
+                                value={(
+                                  integration.config.excludeTags || []
+                                ).join(", ")}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      excludeTags: e.target.value
+                                        .split(",")
+                                        .map((t) => t.trim())
+                                        .filter((t) => t),
+                                    },
+                                  })
+                                }
+                                placeholder="nav, footer, sidebar"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Timeout (ms)</Label>
+                              <Input
+                                type="number"
+                                value={integration.config.timeout || 30000}
+                                onChange={(e) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      timeout:
+                                        parseInt(e.target.value) || 30000,
+                                    },
+                                  })
+                                }
+                                placeholder="30000"
+                              />
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Switch
+                                checked={
+                                  integration.config.onlyMainContent || false
+                                }
+                                onCheckedChange={(checked) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      onlyMainContent: checked,
+                                    },
+                                  })
+                                }
+                              />
+                              <Label>Only Main Content</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Switch
+                                checked={integration.config.saveParams || false}
+                                onCheckedChange={(checked) =>
+                                  handleUpdateIntegration(integration.id, {
+                                    config: {
+                                      ...integration.config,
+                                      saveParams: checked,
+                                    },
+                                  })
+                                }
+                              />
+                              <Label>Save Parameters Mode</Label>
+                            </div>
+                          </>
                         )}
 
                         {integration.id === "n8n" && (
@@ -830,7 +1033,7 @@ const Settings = ({
                                 className="flex items-center space-x-2 text-xs"
                               >
                                 <span className="text-muted-foreground">
-                                  {log.timestamp.toLocaleTimeString()}
+                                  {new Date(log.timestamp).toLocaleTimeString()}
                                 </span>
                                 <span
                                   className={`px-1 rounded ${

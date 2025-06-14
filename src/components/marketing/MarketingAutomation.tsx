@@ -76,117 +76,118 @@ const MarketingAutomation = ({
     const initializeCampaigns = () => {
       try {
         const savedCampaigns = localStorage.getItem("crm-campaigns");
-        if (savedCampaigns) {
+        if (savedCampaigns && savedCampaigns !== "[]") {
           const campaigns = JSON.parse(savedCampaigns);
-          setCampaigns(campaigns);
-        } else {
-          // Always set default campaigns to ensure module is not empty
-          const defaultCampaigns: Campaign[] = [
-            {
-              id: "1",
-              name: "Campagne Nouveaux Biens - Janvier",
-              type: "email",
-              status: "active",
-              recipients: 1250,
-              sent: 1250,
-              opened: 687,
-              clicked: 156,
-              converted: 23,
-              createdAt: new Date(
-                Date.now() - 2 * 24 * 60 * 60 * 1000,
-              ).toISOString(),
-              message:
-                "Découvrez nos nouveaux biens immobiliers sélectionnés pour vous...",
-              subject:
-                "🏠 Nouveaux biens disponibles - Sélection personnalisée",
-            },
-            {
-              id: "2",
-              name: "SMS Rappel Visite",
-              type: "sms",
-              status: "completed",
-              recipients: 45,
-              sent: 45,
-              opened: 45,
-              clicked: 12,
-              converted: 8,
-              createdAt: new Date(
-                Date.now() - 1 * 24 * 60 * 60 * 1000,
-              ).toISOString(),
-              message:
-                "Rappel: Votre visite est prévue demain à 14h. Confirmez votre présence.",
-            },
-            {
-              id: "3",
-              name: "WhatsApp Suivi Prospects",
-              type: "whatsapp",
-              status: "active",
-              recipients: 89,
-              sent: 67,
-              opened: 58,
-              clicked: 34,
-              converted: 12,
-              createdAt: new Date(
-                Date.now() - 3 * 60 * 60 * 1000,
-              ).toISOString(),
-              message:
-                "Bonjour! Avez-vous eu l'occasion de consulter les biens que nous vous avons proposés?",
-            },
-            {
-              id: "4",
-              name: "Meta Ads - Investisseurs Expatriés",
-              type: "meta",
-              status: "paused",
-              recipients: 2500,
-              sent: 1890,
-              opened: 945,
-              clicked: 234,
-              converted: 45,
-              createdAt: new Date(
-                Date.now() - 5 * 24 * 60 * 60 * 1000,
-              ).toISOString(),
-              message:
-                "Investissez en Tunisie depuis l'étranger. ROI attractif garanti.",
-            },
-            {
-              id: "5",
-              name: "Email Newsletter Mensuelle",
-              type: "email",
-              status: "active",
-              recipients: 3200,
-              sent: 3200,
-              opened: 1856,
-              clicked: 412,
-              converted: 67,
-              createdAt: new Date(
-                Date.now() - 7 * 24 * 60 * 60 * 1000,
-              ).toISOString(),
-              message:
-                "Votre newsletter mensuelle avec les meilleures opportunités immobilières...",
-              subject:
-                "📧 Newsletter Immobilière - Les meilleures opportunités du mois",
-            },
-            {
-              id: "6",
-              name: "WhatsApp Promotion Été",
-              type: "whatsapp",
-              status: "draft",
-              recipients: 156,
-              sent: 0,
-              opened: 0,
-              clicked: 0,
-              converted: 0,
-              createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-              message:
-                "🏖️ Offres spéciales été! Découvrez nos biens de vacances avec remises exceptionnelles.",
-            },
-          ];
-          setCampaigns(defaultCampaigns);
-          localStorage.setItem(
-            "crm-campaigns",
-            JSON.stringify(defaultCampaigns),
-          );
+          if (campaigns.length > 0) {
+            setCampaigns(campaigns);
+            return;
+          }
         }
+        // Always set default campaigns to ensure module is not empty
+        const defaultCampaigns: Campaign[] = [
+          {
+            id: "1",
+            name: "Campagne Nouveaux Biens - Janvier",
+            type: "email",
+            status: "active",
+            recipients: 1250,
+            sent: 1250,
+            opened: 687,
+            clicked: 156,
+            converted: 23,
+            createdAt: new Date(
+              Date.now() - 2 * 24 * 60 * 60 * 1000,
+            ).toISOString(),
+            message:
+              "Découvrez nos nouveaux biens immobiliers sélectionnés pour vous...",
+            subject: "🏠 Nouveaux biens disponibles - Sélection personnalisée",
+          },
+          {
+            id: "2",
+            name: "SMS Rappel Visite",
+            type: "sms",
+            status: "completed",
+            recipients: 45,
+            sent: 45,
+            opened: 45,
+            clicked: 12,
+            converted: 8,
+            createdAt: new Date(
+              Date.now() - 1 * 24 * 60 * 60 * 1000,
+            ).toISOString(),
+            message:
+              "Rappel: Votre visite est prévue demain à 14h. Confirmez votre présence.",
+          },
+          {
+            id: "3",
+            name: "WhatsApp Suivi Prospects",
+            type: "whatsapp",
+            status: "active",
+            recipients: 89,
+            sent: 67,
+            opened: 58,
+            clicked: 34,
+            converted: 12,
+            createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+            message:
+              "Bonjour! Avez-vous eu l'occasion de consulter les biens que nous vous avons proposés?",
+          },
+          {
+            id: "4",
+            name: "Meta Ads - Investisseurs Expatriés",
+            type: "meta",
+            status: "paused",
+            recipients: 2500,
+            sent: 1890,
+            opened: 945,
+            clicked: 234,
+            converted: 45,
+            createdAt: new Date(
+              Date.now() - 5 * 24 * 60 * 60 * 1000,
+            ).toISOString(),
+            message:
+              "Investissez en Tunisie depuis l'étranger. ROI attractif garanti.",
+          },
+          {
+            id: "5",
+            name: "Email Newsletter Mensuelle",
+            type: "email",
+            status: "active",
+            recipients: 3200,
+            sent: 3200,
+            opened: 1856,
+            clicked: 412,
+            converted: 67,
+            createdAt: new Date(
+              Date.now() - 7 * 24 * 60 * 60 * 1000,
+            ).toISOString(),
+            message:
+              "Votre newsletter mensuelle avec les meilleures opportunités immobilières...",
+            subject:
+              "📧 Newsletter Immobilière - Les meilleures opportunités du mois",
+          },
+          {
+            id: "6",
+            name: "WhatsApp Promotion Été",
+            type: "whatsapp",
+            status: "draft",
+            recipients: 156,
+            sent: 0,
+            opened: 0,
+            clicked: 0,
+            converted: 0,
+            createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+            message:
+              "🏖️ Offres spéciales été! Découvrez nos biens de vacances avec remises exceptionnelles.",
+          },
+        ];
+        setCampaigns(defaultCampaigns);
+        localStorage.setItem("crm-campaigns", JSON.stringify(defaultCampaigns));
+
+        // Force re-render to ensure campaigns are displayed
+        setTimeout(() => {
+          setCampaigns([...defaultCampaigns]);
+        }, 100);
       } catch (error) {
         console.error("Error initializing campaigns:", error);
         // Fallback: set empty array if there's an error

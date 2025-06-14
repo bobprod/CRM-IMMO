@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createClient } from "@supabase/supabase-js";
+import { useAuth } from "./AuthProvider";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -36,12 +37,17 @@ const formSchema = z.object({
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const supabase = createClient(
-    import.meta.env.VITE_SUPABASE_URL || "https://placeholder.supabase.co",
-    import.meta.env.VITE_SUPABASE_ANON_KEY || "placeholder-key",
-  );
+  const { user, signIn, loading } = useAuth();
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    if (!loading && user) {
+      navigate("/dashboard");
+    }
+  }, [user, loading, navigate]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -54,16 +60,34 @@ export default function Login() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: values.password,
-      });
+      const { error } = await signIn(values.email, values.password);
 
       if (error) {
+        console.error("Login error:", error);
+        let errorMessage = "Une erreur s'est produite lors de la connexion.";
+
+        if (error.message?.includes("Invalid login credentials")) {
+          errorMessage = "Email ou mot de passe incorrect.";
+        } else if (error.message?.includes("Email not confirmed")) {
+          errorMessage =
+            "Veuillez confirmer votre email avant de vous connecter.";
+        } else if (error.message?.includes("Too many requests")) {
+          errorMessage =
+            "Trop de tentatives de connexion. Veuillez réessayer plus tard.";
+        } else if (error.message?.includes("signup_disabled")) {
+          errorMessage =
+            "L'inscription est désactivée. Contactez votre administrateur.";
+        } else if (error.message?.includes("email_address_invalid")) {
+          errorMessage = "Adresse email invalide.";
+        } else if (error.message) {
+          console.log("Full error details:", error);
+          errorMessage = `Erreur: ${error.message}`;
+        }
+
         toast({
           variant: "destructive",
           title: "Erreur de connexion",
-          description: error.message,
+          description: errorMessage,
         });
         return;
       }
@@ -72,12 +96,14 @@ export default function Login() {
         title: "Connexion réussie",
         description: "Vous êtes maintenant connecté.",
       });
-      navigate("/dashboard");
-    } catch (error) {
+      // Navigation is handled by AuthProvider
+    } catch (error: any) {
+      console.error("Unexpected login error:", error);
       toast({
         variant: "destructive",
         title: "Erreur de connexion",
-        description: "Une erreur s'est produite lors de la connexion.",
+        description:
+          "Une erreur inattendue s'est produite. Veuillez réessayer.",
       });
     } finally {
       setIsLoading(false);
@@ -123,19 +149,47 @@ export default function Login() {
                   <FormItem>
                     <FormLabel>Mot de passe</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="••••••••"
-                        type="password"
-                        {...field}
-                        disabled={isLoading}
-                      />
+                      <div className="relative">
+                        <Input
+                          placeholder="••••••••"
+                          type={showPassword ? "text" : "password"}
+                          {...field}
+                          disabled={isLoading}
+                          className="pr-10"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                          disabled={isLoading}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Connexion en cours..." : "Se connecter"}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading || loading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Connexion en cours...
+                  </>
+                ) : (
+                  "Se connecter"
+                )}
               </Button>
             </form>
           </Form>

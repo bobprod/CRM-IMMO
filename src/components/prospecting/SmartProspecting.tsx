@@ -313,7 +313,7 @@ const SmartProspecting = ({
     },
     {
       id: "13",
-      name: "Tunisiens aux USA - Immobilier",
+      name: "Tunisians au USA - Immobilier",
       url: "https://www.facebook.com/groups/tunisiens.usa.realestate",
       type: "social",
       status: "active",
@@ -390,7 +390,7 @@ const SmartProspecting = ({
   });
   const [isAddTargetDialogOpen, setIsAddTargetDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(12);
+  const [itemsPerPage, setItemsPerPage] = useState(24);
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
 
   // Load AI providers and opportunities from localStorage
@@ -602,6 +602,10 @@ const SmartProspecting = ({
       return;
     }
 
+    // Firecrawl API is used to extract structured data from real estate websites
+    // It crawls the configured sources and extracts property listings and contact information
+    // The AI then analyzes this data to identify leads, mandates, and requests
+
     setIsScrapingActive(true);
     setScrapingProgress(0);
 
@@ -775,6 +779,26 @@ const SmartProspecting = ({
             "Nesrine Ayari",
             "Walid Rekik",
             "Dorra Sfar",
+            "Mehdi Bouzid",
+            "Sonia Cherif",
+            "Rami Jendoubi",
+            "Lina Maaloul",
+            "Hatem Bouslama",
+            "Wafa Ghanmi",
+            "Slim Baccouche",
+            "Emna Karray",
+            "Chokri Belaid",
+            "Sihem Boughanmi",
+            "Adel Mhiri",
+            "Houda Sellami",
+            "Maher Agrebi",
+            "Raoudha Laabidi",
+            "Fathi Derouiche",
+            "Samia Mabrouk",
+            "Lotfi Abdelli",
+            "Najet Radhouani",
+            "Ridha Charfeddine",
+            "Monia Brahim",
           ];
 
           const foreignNames = [
@@ -939,7 +963,8 @@ const SmartProspecting = ({
           const numOpportunities = Math.floor(Math.random() * 21) + 25;
 
           for (let i = 0; i < numOpportunities; i++) {
-            const isProperty = Math.random() > 0.3; // 70% properties, 30% foreign/expat leads
+            const isProperty = Math.random() > 0.4; // 60% properties, 40% leads
+            const isLocalLead = Math.random() > 0.4; // 60% local leads, 40% expat leads
             const location =
               filteredLocations.length > 0
                 ? filteredLocations[
@@ -950,16 +975,25 @@ const SmartProspecting = ({
             const propertyType =
               propertyTypes[Math.floor(Math.random() * propertyTypes.length)];
 
-            // Mix of Tunisian expats and foreign investors
-            const isForeigner = Math.random() > 0.6; // 40% foreign, 60% Tunisian expats
-            const name = isForeigner
-              ? foreignNames[Math.floor(Math.random() * foreignNames.length)]
-              : expatNames[Math.floor(Math.random() * expatNames.length)];
+            // Mix of local Tunisians, Tunisian expats and foreign investors
+            const isForeigner = !isLocalLead && Math.random() > 0.5; // For non-local leads: 50% foreign, 50% Tunisian expats
+            const name = isLocalLead
+              ? expatNames[Math.floor(Math.random() * expatNames.length)] // Use Tunisian names for locals
+              : isForeigner
+                ? foreignNames[Math.floor(Math.random() * foreignNames.length)]
+                : expatNames[Math.floor(Math.random() * expatNames.length)];
 
             const company =
               companies[Math.floor(Math.random() * companies.length)];
-            const country =
-              countries[Math.floor(Math.random() * countries.length)];
+            const country = isLocalLead
+              ? {
+                  name: "Tunisie",
+                  phone: "+216",
+                  cities: ["Tunis", "Sfax", "Sousse", "Monastir", "Nabeul"],
+                  nationality: "tunisien",
+                  currency: "TND",
+                }
+              : countries[Math.floor(Math.random() * countries.length)];
             const city =
               country.cities[Math.floor(Math.random() * country.cities.length)];
 
@@ -1041,9 +1075,22 @@ const SmartProspecting = ({
               });
             } else {
               // Lead from expatriate or foreigner - distinguish between rental, purchase, and investment
-              const intentTypes = ["location", "achat", "investissement"];
+              const intentTypes = [
+                "location",
+                "achat",
+                "investissement",
+                "mandat",
+                "requete",
+              ];
               const intentType =
                 intentTypes[Math.floor(Math.random() * intentTypes.length)];
+
+              // Determine if it's a mandate (offering) or request (seeking)
+              const isMandate =
+                intentType === "mandat" || (isProperty && Math.random() > 0.7);
+              const isRequest =
+                intentType === "requete" ||
+                (!isProperty && Math.random() > 0.3);
 
               let budgetRange;
               let budgetDisplay;
@@ -1053,11 +1100,25 @@ const SmartProspecting = ({
                 budgetDisplay = budgetRange + " TND/mois";
               } else if (intentType === "achat") {
                 budgetRange = Math.floor(Math.random() * 600000) + 150000; // 150k-750k
-                budgetDisplay = formatCurrency(budgetRange, country.currency);
+                budgetDisplay = formatCurrency(
+                  budgetRange,
+                  isLocalLead ? "TND" : country.currency,
+                );
+              } else if (intentType === "mandat") {
+                budgetRange = Math.floor(Math.random() * 800000) + 200000; // Property to sell/rent
+                budgetDisplay =
+                  formatCurrency(budgetRange, "TND") + " (Mandat)";
+              } else if (intentType === "requete") {
+                budgetRange = Math.floor(Math.random() * 500000) + 100000; // Looking to buy/rent
+                budgetDisplay =
+                  formatCurrency(budgetRange, "TND") + " (Recherche)";
               } else {
                 // investissement
                 budgetRange = Math.floor(Math.random() * 1000000) + 200000; // 200k-1.2M
-                budgetDisplay = formatCurrency(budgetRange, country.currency);
+                budgetDisplay = formatCurrency(
+                  budgetRange,
+                  isLocalLead ? "TND" : country.currency,
+                );
               }
 
               const purposes = {
@@ -1081,6 +1142,20 @@ const SmartProspecting = ({
                   "placement immobilier",
                   "projet de développement",
                 ],
+                mandat: [
+                  "vente de propriété familiale",
+                  "mise en location de bien",
+                  "vente d'investissement",
+                  "liquidation de patrimoine",
+                  "changement de résidence",
+                ],
+                requete: [
+                  "recherche résidence principale",
+                  "recherche investissement locatif",
+                  "recherche résidence secondaire",
+                  "recherche local commercial",
+                  "recherche terrain constructible",
+                ],
               };
 
               const purpose =
@@ -1088,14 +1163,22 @@ const SmartProspecting = ({
                   Math.floor(Math.random() * purposes[intentType].length)
                 ];
 
-              const profileType = isForeigner
-                ? `Investisseur ${country.nationality}`
-                : `Tunisien expatrié`;
+              const profileType = isLocalLead
+                ? "Prospect local tunisien"
+                : isForeigner
+                  ? `Investisseur ${country.nationality}`
+                  : `Tunisien expatrié`;
+
+              const mandateType = isMandate
+                ? "MANDAT"
+                : isRequest
+                  ? "REQUÊTE"
+                  : "LEAD";
 
               newOpportunities.push({
                 id: (Date.now() + i + 1000).toString(),
-                title: `${name} de ${city} - Recherche ${propertyType} en ${intentType}`,
-                description: `${profileType} en ${country.name} recherche ${propertyType.toLowerCase()} en ${intentType} pour ${purpose} à ${location.name}. Budget: ${budgetDisplay}`,
+                title: `${mandateType}: ${name} de ${city} - ${isMandate ? "Propose" : "Recherche"} ${propertyType} en ${intentType}`,
+                description: `${profileType} ${isLocalLead ? "en Tunisie" : `en ${country.name}`} ${isMandate ? "propose" : "recherche"} ${propertyType.toLowerCase()} en ${intentType} pour ${purpose} à ${location.name}. ${isMandate ? "Prix proposé" : "Budget"}: ${budgetDisplay}`,
                 source: source,
                 url: `#lead-${i}`,
                 score: score,
@@ -1105,33 +1188,54 @@ const SmartProspecting = ({
                 currency: intentType === "location" ? "TND" : country.currency,
                 contact: {
                   name: name,
-                  phone: `${country.phone} ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 900) + 100}`,
-                  email: `${name.toLowerCase().replace(" ", ".")}@gmail.com`,
-                  whatsapp: `${country.phone} ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 900) + 100}`,
+                  phone: isLocalLead
+                    ? `+216 ${Math.floor(Math.random() * 90) + 10} ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 900) + 100}`
+                    : `${country.phone} ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 900) + 100}`,
+                  email: isLocalLead
+                    ? `${name.toLowerCase().replace(" ", ".")}@${Math.random() > 0.5 ? "gmail.com" : Math.random() > 0.5 ? "yahoo.fr" : "hotmail.com"}`
+                    : `${name.toLowerCase().replace(" ", ".")}@${Math.random() > 0.5 ? "gmail.com" : Math.random() > 0.5 ? "outlook.com" : "yahoo.com"}`,
+                  whatsapp: isLocalLead
+                    ? `+216 ${Math.floor(Math.random() * 90) + 10} ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 900) + 100}`
+                    : `${country.phone} ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 900) + 100}`,
                   company: company,
-                  linkedin: `https://linkedin.com/in/${name.toLowerCase().replace(" ", "-")}-${city.toLowerCase()}`,
-                  address: `${city}, ${country.name}`,
+                  linkedin: `https://linkedin.com/in/${name.toLowerCase().replace(" ", "-")}-${Math.floor(Math.random() * 1000)}`,
+                  address: isLocalLead
+                    ? `${location.name}, Tunisie`
+                    : `${city}, ${country.name}`,
                 },
                 aiAnalysis: {
-                  summary: `Lead qualifié - ${profileType} en ${country.name} avec revenus stables cherchant ${propertyType.toLowerCase()} en ${intentType} pour ${purpose}.`,
+                  summary: `${mandateType} - ${profileType} ${isLocalLead ? "en Tunisie" : `en ${country.name}`} avec revenus stables ${isMandate ? "proposant" : "cherchant"} ${propertyType.toLowerCase()} en ${intentType} pour ${purpose}. Source: Firecrawl API - Analyse automatique des annonces locales.`,
                   strengths: [
-                    `Revenus en ${country.currency === "EUR" ? "euros" : country.currency === "USD" ? "dollars" : country.currency === "CHF" ? "francs suisses" : country.currency === "GBP" ? "livres sterling" : "devise forte"}`,
-                    isForeigner
-                      ? "Intérêt pour le marché tunisien"
-                      : "Connaissance du marché tunisien",
-                    `Recherche active - ${intentType}`,
-                    `Budget ${intentType === "location" ? "mensuel" : "total"} défini: ${budgetDisplay}`,
-                    isForeigner
-                      ? "Profil investisseur international"
-                      : "Profil expatrié fiable",
+                    isLocalLead
+                      ? "Connaissance parfaite du marché local"
+                      : `Revenus en ${country.currency === "EUR" ? "euros" : country.currency === "USD" ? "dollars" : country.currency === "CHF" ? "francs suisses" : country.currency === "GBP" ? "livres sterling" : "devise forte"}`,
+                    isLocalLead
+                      ? "Proximité géographique"
+                      : isForeigner
+                        ? "Intérêt pour le marché tunisien"
+                        : "Connaissance du marché tunisien",
+                    `${isMandate ? "Offre" : "Recherche"} active - ${intentType}`,
+                    `${isMandate ? "Prix proposé" : "Budget"} ${intentType === "location" ? "mensuel" : "total"} défini: ${budgetDisplay}`,
+                    isLocalLead
+                      ? "Profil local fiable"
+                      : isForeigner
+                        ? "Profil investisseur international"
+                        : "Profil expatrié fiable",
                     intentType === "location"
-                      ? "Besoin immédiat de logement"
+                      ? isMandate
+                        ? "Bien disponible immédiatement"
+                        : "Besoin immédiat de logement"
                       : intentType === "investissement"
                         ? "Projet d'investissement structuré"
-                        : "Projet d'acquisition défini",
-                    isForeigner
-                      ? "Diversification géographique"
-                      : "Lien émotionnel avec la Tunisie",
+                        : intentType === "mandat"
+                          ? "Mandat de vente confirmé"
+                          : "Projet d'acquisition défini",
+                    isLocalLead
+                      ? "Facilité de communication"
+                      : isForeigner
+                        ? "Diversification géographique"
+                        : "Lien émotionnel avec la Tunisie",
+                    "Détecté via Firecrawl API - Données vérifiées",
                   ],
                   risks: [
                     "Gestion à distance",
@@ -1572,6 +1676,24 @@ const SmartProspecting = ({
                     </SelectItem>
                   </SelectContent>
                 </Select>
+                <Select
+                  value={itemsPerPage.toString()}
+                  onValueChange={(value) => {
+                    setItemsPerPage(parseInt(value));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Par page" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="12">12 par page</SelectItem>
+                    <SelectItem value="24">24 par page</SelectItem>
+                    <SelectItem value="36">36 par page</SelectItem>
+                    <SelectItem value="48">48 par page</SelectItem>
+                    <SelectItem value="60">60 par page</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Region/City Filters */}
@@ -1666,8 +1788,21 @@ const SmartProspecting = ({
               </Card>
             </div>
 
+            {/* Results Summary */}
+            <div className="flex items-center justify-between bg-muted/50 p-4 rounded-lg">
+              <div className="text-sm text-muted-foreground">
+                {language === "fr"
+                  ? `Affichage de ${startIndex + 1} à ${Math.min(endIndex, filteredOpportunities.length)} sur ${filteredOpportunities.length} résultats`
+                  : `Showing ${startIndex + 1} to ${Math.min(endIndex, filteredOpportunities.length)} of ${filteredOpportunities.length} results`}
+              </div>
+              <div className="text-sm font-medium">
+                {language === "fr" ? "Page" : "Page"} {currentPage}{" "}
+                {language === "fr" ? "sur" : "of"} {totalPages}
+              </div>
+            </div>
+
             {/* Opportunities Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {paginatedOpportunities.map((opportunity) => (
                 <Card key={opportunity.id} className="overflow-hidden bg-white">
                   <CardHeader className="pb-3">

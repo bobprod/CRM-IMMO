@@ -9,6 +9,7 @@ import ProspectManagement from "./prospects/ProspectManagement";
 import Settings from "./settings/Settings";
 import CalendarModule from "./calendar/CalendarModule";
 import SmartProspecting from "./prospecting/SmartProspecting";
+import MarketingAutomation from "./marketing/MarketingAutomation";
 import { Button } from "./ui/button";
 import {
   PlusCircle,
@@ -26,6 +27,7 @@ const Home = ({ initialTab = "dashboard" }: HomeProps = {}) => {
   // Default language and currency state
   const [language, setLanguage] = React.useState("fr"); // 'fr' for French, 'en' for English
   const [currency, setCurrency] = React.useState("TND"); // TND, EUR, USD, GBP
+  const [activeTab, setActiveTab] = React.useState(initialTab);
 
   // Translations for the interface
   const translations = {
@@ -161,11 +163,13 @@ const Home = ({ initialTab = "dashboard" }: HomeProps = {}) => {
         setLanguage={setLanguage}
         currency={currency}
         setCurrency={setCurrency}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
       />
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-6">
-        <Tabs defaultValue={initialTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex items-center justify-between mb-6">
             <TabsList>
               <TabsTrigger value="dashboard">{t.dashboard}</TabsTrigger>
@@ -261,22 +265,7 @@ const Home = ({ initialTab = "dashboard" }: HomeProps = {}) => {
 
           {/* Marketing Automation Tab */}
           <TabsContent value="marketing">
-            <Card className="bg-white">
-              <CardHeader>
-                <CardTitle>
-                  {language === "fr"
-                    ? "Automatisation Marketing"
-                    : "Marketing Automation"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  {language === "fr"
-                    ? "Créez et gérez des campagnes marketing multi-canal (email, SMS, WhatsApp, Meta)."
-                    : "Create and manage multi-channel marketing campaigns (email, SMS, WhatsApp, Meta)."}
-                </p>
-              </CardContent>
-            </Card>
+            <MarketingAutomation language={language} currency={currency} />
           </TabsContent>
 
           {/* Smart Prospecting Tab */}
